@@ -4,7 +4,7 @@ export async function fetchDocuments(): Promise<Document[]> {
     headers: {
       "Content-Type": "application/json",
     },
-    cache: "force-cache", // ou remova se não for necessário
+    cache: "force-cache",
   });
 
   if (!response.ok) {
