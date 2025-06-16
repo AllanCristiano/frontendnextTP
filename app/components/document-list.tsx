@@ -50,7 +50,7 @@ export function DocumentList({ documents }: DocumentListProps) {
 
   // Ordena os documentos do mais novo para o mais antigo (sem mutar o array)
   const sortedDocuments = [...filteredDocuments].sort((a, b) =>
-    parseDateISO(b.date).getTime() - parseDateISO(a.date).getTime()
+    parseDateISO(a.date).getTime() - parseDateISO(a.date).getTime()
   )
 
   // Estatísticas
