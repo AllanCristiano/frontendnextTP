@@ -1,7 +1,7 @@
 import type { Document } from "../types"
 
 export async function fetchDocuments(): Promise<Document[]> {
-  try {
+  
     // URL da API na porta 3001
     const response = await fetch("http://localhost:3001/documento", {
       method: "GET",
@@ -30,13 +30,6 @@ export async function fetchDocuments(): Promise<Document[]> {
     }))
 
     return mappedDocuments
-  } catch (error) {
-    console.error("Erro ao buscar documentos da API:", error)
-
-    // Fallback para dados mockados em caso de erro
-    console.log("Usando dados mockados como fallback...")
-    return getFallbackData()
-  }
 }
 
 // Função de fallback com dados mockados
