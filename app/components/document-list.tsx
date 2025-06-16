@@ -1,19 +1,13 @@
-"use client"
-
 import { useState } from "react"
 import type { Document, DocumentType, DateRange } from "../types"
-import { Card } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { FileText, Download, FileBarChart2, Filter, Files } from "lucide-react"
 import { DocumentFilters } from "./document-filters"
 import { Pagination } from "./pagination"
+import { Button } from "@/components/ui/button"
 
 interface DocumentListProps {
   documents: Document[]
-}
-
-// Função utilitária para parsing consistente de datas no formato YYYY-MM-DD
-function parseDateISO(dataStr: string): Date {
-  const [ano, mes, dia] = dataStr.split("-").map(Number)
-  return new Date(ano, mes - 1, dia)
 }
 
 export function DocumentList({ documents }: DocumentListProps) {
@@ -31,29 +25,27 @@ export function DocumentList({ documents }: DocumentListProps) {
     const cleanTitle = doc.title.replace("/", "").replace(".", "")
     const cleanDescription = doc.description.replace("/", "").replace(".", "")
     const cleanNumber = doc.number.replace("/", "").replace(".", "")
-    const term = searchTerm.toLowerCase().replace("/", "").replace(".", "")
-
     const matchesSearch =
-      cleanTitle.toLowerCase().includes(term) ||
-      cleanDescription.toLowerCase().includes(term) ||
-      cleanNumber.toLowerCase().includes(term)
+      cleanTitle.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
+      cleanDescription.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
+      cleanNumber.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", ""))
 
     const matchesTab = activeTab === "ALL" || doc.type === activeTab
 
-    const docDate = parseDateISO(doc.date)
+    const docDate = new Date(doc.date)
     const matchesDateRange =
-      (!dateRange.from || docDate >= dateRange.from) &&
-      (!dateRange.to || docDate <= dateRange.to)
+      (!dateRange.from || docDate >= dateRange.from) && (!dateRange.to || docDate <= dateRange.to)
 
     return matchesSearch && matchesTab && matchesDateRange
   })
 
-  // Ordena os documentos do mais novo para o mais antigo (sem mutar o array)
-  const sortedDocuments = [...filteredDocuments].sort((a, b) =>
-    parseDateISO(a.date).getTime() - parseDateISO(a.date).getTime()
+  // Paginação sem ordenação por data
+  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage)
+  const paginatedDocuments = filteredDocuments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   )
 
-  // Estatísticas
   const documentStats = {
     total: documents.length,
     filtered: filteredDocuments.length,
@@ -64,9 +56,6 @@ export function DocumentList({ documents }: DocumentListProps) {
       DECREE: documents.filter((doc) => doc.type === "DECRETO").length,
     },
   }
-
-  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage)
-  const paginatedDocuments = sortedDocuments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   const handleFilterChange = (type: DocumentType | "ALL", newDateRange: DateRange) => {
     setDateRange(newDateRange)
@@ -83,6 +72,7 @@ export function DocumentList({ documents }: DocumentListProps) {
     setCurrentPage(1)
   }
 
+  // Função para baixar o PDF usando o endpoint interno
   const handleDownload = (filename: string) => {
     const url = `/documentos/${filename}.pdf`
     const link = document.createElement("a")
@@ -94,11 +84,13 @@ export function DocumentList({ documents }: DocumentListProps) {
   function formatarDataPorExtenso(dataStr: string): string {
     const [ano, mes, dia] = dataStr.split("-").map(Number)
     const data = new Date(ano, mes - 1, dia)
+
     const opcoes: Intl.DateTimeFormatOptions = {
       day: "2-digit",
       month: "long",
       year: "numeric",
     }
+
     return new Intl.DateTimeFormat("pt-BR", opcoes).format(data).toLowerCase()
   }
 
@@ -118,8 +110,8 @@ export function DocumentList({ documents }: DocumentListProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {/* ... cards remain unchanged ... */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* ... stats cards unchanged ... */}
         </div>
 
         <DocumentFilters
@@ -129,44 +121,44 @@ export function DocumentList({ documents }: DocumentListProps) {
           hideTypeFilter={true}
         />
 
-        {/* Tabs & Listagem */}
-        <div className="mb-6 sm:mb-8">
-          {/* ... tab nav unchanged ... */}
+        {/* Tabs e Conteúdo */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
+          {/* Navegação de Tabs */}
+          <div className="flex justify-center border-b">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id as DocumentType | "ALL")}
+                className={activeTab === tab.id ? "active-tab" : ""}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-          <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800">
-            <div className="space-y-4">
-              {paginatedDocuments.map((doc) => (
-                <Card key={doc.id} className="transform transition-all duration-200 hover:scale-[1.01] ...">
-                  {/* ... card content unchanged ... */}
-                </Card>
-              ))}
+          {/* Conteúdo dos Tabs */}
+          <div className="p-4">
+            {paginatedDocuments.map((doc) => (
+              <Card key={doc.id} className="mb-4">
+                {/* Conteúdo do cartão */}
+              </Card>
+            ))}
 
-              {filteredDocuments.length === 0 && (
-                <div className="text-center py-8 ...">
-                  {/* mensagem de nenhum documento */}
-                </div>
-              )}
-            </div>
+            {filteredDocuments.length === 0 && <p>Nenhum documento encontrado</p>}
 
             {filteredDocuments.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={handlePageChange}
-                />
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+              />
             )}
           </div>
         </div>
       </div>
 
-      <style jsx>{`
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .border-b-3 { border-bottom-width: 3px; }
-      `}</style>
+      <style jsx>{` .active-tab { /* estilos da aba ativa */ } `}</style>
     </div>
   )
 }
