@@ -8,6 +8,7 @@ export interface Document {
   description: string;
   date: string;
   url: string;
+  fullText: string;
 }
 
 export interface DateRange {
