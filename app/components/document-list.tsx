@@ -225,7 +225,7 @@ export function DocumentList({ documents }: DocumentListProps) {
 
             {/* Tab Content */}
             <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800">
-            <div className="pb-4 text-gray-600 text-sm">Atualizado em: {formatarDataPorExtenso(datesByTab[activeTab])}</div>
+            <div className="pb-4 text-gray-600 text-sm">Atualizado em, {formatarDataPorExtenso(datesByTab[activeTab])}</div>
               <div className="space-y-4">
                 {paginatedDocuments.map((doc) => (
                   <Card
