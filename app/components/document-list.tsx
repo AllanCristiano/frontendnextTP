@@ -82,9 +82,14 @@ export function DocumentList({ documents }: DocumentListProps) {
     link.click()
   }
 
+    // Formata data ISO (YYYY-MM-DD) para extenso em pt-BR
   function formatarDataPorExtenso(dataStr: string): string {
-    const [ano, mes, dia] = dataStr.split("-").map(Number)
+    if (!dataStr) return ""
+    const parts = dataStr.split("-")
+    if (parts.length !== 3) return ""
+    const [ano, mes, dia] = parts.map(Number)
     const data = new Date(ano, mes - 1, dia)
+    if (isNaN(data.getTime())) return ""
 
     const opcoes: Intl.DateTimeFormatOptions = {
       day: "2-digit",
@@ -92,9 +97,11 @@ export function DocumentList({ documents }: DocumentListProps) {
       year: "numeric",
     }
 
-    return new Intl.DateTimeFormat("pt-BR", opcoes).format(data).toLowerCase()
+    return new Intl.DateTimeFormat("pt-BR", opcoes)
+      .format(data)
+      .toLowerCase()
   }
-
+  
   function toTitleCase(str: string): string {
     return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase())
   }
