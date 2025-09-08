@@ -4,7 +4,9 @@ export async function fetchDocuments(): Promise<Document[]> {
     headers: {
       "Content-Type": "application/json",
     },
-    cache: "force-cache",
+    // MUDANÇA 1: Altere para "no-store" para sempre buscar dados novos do servidor.
+    // Isso evita que o navegador mostre resultados antigos (de cache).
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -33,10 +35,16 @@ export async function fetchDocuments(): Promise<Document[]> {
       fullText: doc.fullText || doc.textoCompleto || doc.conteudo || ""
     };
 
-    // Regra: se for Lei Complementar e o número tiver '.', vira Lei Ordinária
+    // --- REGRA RESTAURADA E MELHORADA ---
+    // A condição volta a ser APENAS para números com ponto.
     if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
       mappedDoc.type = "LEI_ORDINARIA";
-      mappedDoc.title = mappedDoc.title.replace("Lei Complementar nº", "Lei nº");
+      
+      // MUDANÇA 2: Usar replace com expressão regular (/.../i)
+      // O 'i' torna a busca por "Lei Complementar nº" insensível a maiúsculas/minúsculas,
+      // garantindo que funcione mesmo se o texto variar.
+      mappedDoc.title = mappedDoc.title.replace(/Lei Complementar nº/i, "Lei nº");
+      console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
     }
 
     return mappedDoc;
@@ -59,16 +67,12 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
 
-  // --- NOVO TRECHO: Ordenação do maior para o menor ---
-  // O método .sort() ordena o array.
-  // Para comparar os números corretamente, removemos os pontos e os convertemos para inteiros.
-  // A lógica 'numB - numA' resulta em uma ordenação decrescente (maior para o menor).
+  // Ordenação do maior para o menor
   uniqueDocuments.sort((a, b) => {
     const numA = parseInt(a.number.replace(/\./g, ''), 10);
     const numB = parseInt(b.number.replace(/\./g, ''), 10);
     return numB - numA;
   });
-  // --- FIM DO NOVO TRECHO ---
 
   return uniqueDocuments;
 }
