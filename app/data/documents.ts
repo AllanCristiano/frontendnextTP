@@ -44,6 +44,10 @@ export async function fetchDocuments(): Promise<Document[]> {
       // O 'i' torna a busca por "Lei Complementar nº" insensível a maiúsculas/minúsculas,
       // garantindo que funcione mesmo se o texto variar.
       mappedDoc.title = mappedDoc.title.replace(/Lei Complementar nº/i, "Lei Ordinaria nº");
+      console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
+    }
+
+    if (mappedDoc.type === "LEI_ORDINARIA"){
       mappedDoc.title = mappedDoc.title.replace(/Lei nº/i, "Lei Ordinaria nº");
       console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
     }
