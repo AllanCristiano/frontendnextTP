@@ -50,9 +50,9 @@ export async function fetchDocuments(): Promise<Document[]> {
   const uniqueDocumentsMap = new Map<string, Document>();
   filteredDocuments.forEach((doc) => {
     // --- ALTERAÇÃO PRINCIPAL AQUI ---
-    // Limpa o número, removendo tudo que não for dígito (0-9).
-    // Isso faz com que "213," e "213" sejam tratados como o mesmo número.
-    const cleanNumber = doc.number.replace(/[^0-9]/g, "");
+    // Limpa o número, removendo APENAS as vírgulas e aparando espaços.
+    // Ex: "213," vira "213".
+    const cleanNumber = doc.number.replace(/,/g, "").trim();
     
     // A chave composta agora usa o número limpo
     const compositeKey = `${doc.type}-${cleanNumber}`;
