@@ -15,17 +15,14 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   // Mapeamento e transformação dos dados
   const mappedDocuments: Document[] = data.map((doc: any) => {
-    // Pega o número original da API
     const rawNumber = doc.number || doc.numero || doc.num || "";
+    const rawTitle = doc.title || doc.titulo || doc.nome || "";
 
     const mappedDoc = {
       id: doc.id || doc._id || String(Math.random()),
       type: doc.type || doc.tipo || "PORTARIA",
-      // --- ALTERAÇÃO PRINCIPAL AQUI ---
-      // O número já é limpo (remove vírgulas e espaços) no momento da criação.
-      // Isso garante que o campo 'number' do objeto esteja sempre limpo.
       number: rawNumber.replace(/,/g, "").trim(),
-      title: doc.title || doc.titulo || doc.nome || "",
+      title: rawTitle,
       description: doc.description || doc.descricao || doc.desc || "",
       date:
         doc.date ||
@@ -39,6 +36,7 @@ export async function fetchDocuments(): Promise<Document[]> {
     // Regra: se for Lei Complementar e o número tiver '.', vira Lei Ordinária
     if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
       mappedDoc.type = "LEI_ORDINARIA";
+      mappedDoc.title = mappedDoc.title.replace("Lei Complementar nº", "Lei nº");
     }
 
     return mappedDoc;
@@ -46,7 +44,6 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   // Filtragem: remover documentos específicos
   const filteredDocuments = mappedDocuments.filter((document) => {
-    // A comparação agora usa o número já limpo
     const isDecreto = document.type === "DECRETO" && document.number === "6.862";
     const isLeiOrdinaria = document.type === "LEI_ORDINARIA" && document.number === "5.660";
 
@@ -56,12 +53,22 @@ export async function fetchDocuments(): Promise<Document[]> {
   // Remoção de duplicados com base no tipo E número
   const uniqueDocumentsMap = new Map<string, Document>();
   filteredDocuments.forEach((doc) => {
-    // Agora que 'doc.number' já está limpo, não precisamos de uma variável extra
     const compositeKey = `${doc.type}-${doc.number}`;
     uniqueDocumentsMap.set(compositeKey, doc);
   });
 
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
+
+  // --- NOVO TRECHO: Ordenação do maior para o menor ---
+  // O método .sort() ordena o array.
+  // Para comparar os números corretamente, removemos os pontos e os convertemos para inteiros.
+  // A lógica 'numB - numA' resulta em uma ordenação decrescente (maior para o menor).
+  uniqueDocuments.sort((a, b) => {
+    const numA = parseInt(a.number.replace(/\./g, ''), 10);
+    const numB = parseInt(b.number.replace(/\./g, ''), 10);
+    return numB - numA;
+  });
+  // --- FIM DO NOVO TRECHO ---
 
   return uniqueDocuments;
 }
