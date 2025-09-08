@@ -29,9 +29,7 @@ export async function fetchDocuments(): Promise<Document[]> {
     fullText: doc.fullText || doc.textoCompleto || doc.conteudo || ""
   }));
 
-  // Filtragem: remover documentos que sejam:
-  // - DECRETO com número "6.862", ou
-  // - LEI_ORDINARIA com número "5.660"
+  // Filtragem: remover documentos específicos
   const filteredDocuments = mappedDocuments.filter((document) => {
     const isDecreto = document.type === "DECRETO" && document.number.trim() === "6.862";
     const isLeiOrdinaria = document.type === "LEI_ORDINARIA" && document.number.trim() === "5.660";
@@ -39,5 +37,18 @@ export async function fetchDocuments(): Promise<Document[]> {
     return !(isDecreto || isLeiOrdinaria);
   });
 
-  return filteredDocuments;
+  // --- NOVO TRECHO: Remoção de duplicados com base no 'id' ---
+  // Um Map é usado para armazenar cada documento com seu 'id' como chave.
+  // Se um 'id' já existir, o documento anterior é simplesmente substituído,
+  // resultando em uma coleção com apenas um documento por 'id'.
+  const uniqueDocumentsMap = new Map<string, Document>();
+  filteredDocuments.forEach((doc) => {
+    uniqueDocumentsMap.set(doc.id, doc);
+  });
+
+  // Converte os valores do Map de volta para um array
+  const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
+  // --- FIM DO NOVO TRECHO ---
+
+  return uniqueDocuments;
 }
