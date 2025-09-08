@@ -13,21 +13,35 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const data = await response.json();
 
-  // Mapeamento dos dados para o tipo Document
-  const mappedDocuments: Document[] = data.map((doc: any) => ({
-    id: doc.id || doc._id || String(Math.random()),
-    type: doc.type || doc.tipo || "PORTARIA",
-    number: doc.number || doc.numero || doc.num || "",
-    title: doc.title || doc.titulo || doc.nome || "",
-    description: doc.description || doc.descricao || doc.desc || "",
-    date:
-      doc.date ||
-      doc.data ||
-      doc.created_at ||
-      new Date().toISOString().split("T")[0],
-    url: doc.url || doc.arquivo || doc.link || "",
-    fullText: doc.fullText || doc.textoCompleto || doc.conteudo || ""
-  }));
+  // Mapeamento e transformação dos dados para o tipo Document
+  const mappedDocuments: Document[] = data.map((doc: any) => {
+    // 1. Mapeia os campos normalmente
+    const mappedDoc = {
+      id: doc.id || doc._id || String(Math.random()),
+      type: doc.type || doc.tipo || "PORTARIA",
+      number: doc.number || doc.numero || doc.num || "",
+      title: doc.title || doc.titulo || doc.nome || "",
+      description: doc.description || doc.descricao || doc.desc || "",
+      date:
+        doc.date ||
+        doc.data ||
+        doc.created_at ||
+        new Date().toISOString().split("T")[0],
+      url: doc.url || doc.arquivo || doc.link || "",
+      fullText: doc.fullText || doc.textoCompleto || doc.conteudo || ""
+    };
+
+    // --- NOVO TRECHO: Regra de transformação de tipo ---
+    // 2. Verifica se o tipo é LEI_COMPLEMENTAR e o número contém um ponto "."
+    // Se a condição for verdadeira, altera o tipo para LEI_ORDINARIA.
+    // (Assumindo que "Lei Complementar" é representada como "LEI_COMPLEMENTAR")
+    if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
+      mappedDoc.type = "LEI_ORDINARIA";
+    }
+    // --- FIM DO NOVO TRECHO ---
+
+    return mappedDoc;
+  });
 
   // Filtragem: remover documentos específicos
   const filteredDocuments = mappedDocuments.filter((document) => {
@@ -37,19 +51,14 @@ export async function fetchDocuments(): Promise<Document[]> {
     return !(isDecreto || isLeiOrdinaria);
   });
 
-  // --- ALTERAÇÃO: Remoção de duplicados com base no tipo E número ---
-  // A chave do Map agora é uma combinação do tipo e do número do documento
-  // para garantir que cada par (ex: 'LEI_COMPLEMENTAR' + '6.166') seja único.
+  // Remoção de duplicados com base no tipo E número
   const uniqueDocumentsMap = new Map<string, Document>();
   filteredDocuments.forEach((doc) => {
-    // Cria uma chave única, ex: "LEI_COMPLEMENTAR-6.166"
     const compositeKey = `${doc.type}-${doc.number.trim()}`;
     uniqueDocumentsMap.set(compositeKey, doc);
   });
 
-  // Converte os valores do Map de volta para um array
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
-  // --- FIM DA ALTERAÇÃO ---
 
   return uniqueDocuments;
 }
