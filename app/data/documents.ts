@@ -37,18 +37,19 @@ export async function fetchDocuments(): Promise<Document[]> {
     return !(isDecreto || isLeiOrdinaria);
   });
 
-  // --- NOVO TRECHO: Remoção de duplicados com base no 'id' ---
-  // Um Map é usado para armazenar cada documento com seu 'id' como chave.
-  // Se um 'id' já existir, o documento anterior é simplesmente substituído,
-  // resultando em uma coleção com apenas um documento por 'id'.
+  // --- ALTERAÇÃO: Remoção de duplicados com base no tipo E número ---
+  // A chave do Map agora é uma combinação do tipo e do número do documento
+  // para garantir que cada par (ex: 'LEI_COMPLEMENTAR' + '6.166') seja único.
   const uniqueDocumentsMap = new Map<string, Document>();
   filteredDocuments.forEach((doc) => {
-    uniqueDocumentsMap.set(doc.id, doc);
+    // Cria uma chave única, ex: "LEI_COMPLEMENTAR-6.166"
+    const compositeKey = `${doc.type}-${doc.number.trim()}`;
+    uniqueDocumentsMap.set(compositeKey, doc);
   });
 
   // Converte os valores do Map de volta para um array
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
-  // --- FIM DO NOVO TRECHO ---
+  // --- FIM DA ALTERAÇÃO ---
 
   return uniqueDocuments;
 }
