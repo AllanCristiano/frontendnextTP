@@ -15,10 +15,16 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   // Mapeamento e transformação dos dados
   const mappedDocuments: Document[] = data.map((doc: any) => {
+    // Pega o número original da API
+    const rawNumber = doc.number || doc.numero || doc.num || "";
+
     const mappedDoc = {
       id: doc.id || doc._id || String(Math.random()),
       type: doc.type || doc.tipo || "PORTARIA",
-      number: doc.number || doc.numero || doc.num || "",
+      // --- ALTERAÇÃO PRINCIPAL AQUI ---
+      // O número já é limpo (remove vírgulas e espaços) no momento da criação.
+      // Isso garante que o campo 'number' do objeto esteja sempre limpo.
+      number: rawNumber.replace(/,/g, "").trim(),
       title: doc.title || doc.titulo || doc.nome || "",
       description: doc.description || doc.descricao || doc.desc || "",
       date:
@@ -40,8 +46,9 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   // Filtragem: remover documentos específicos
   const filteredDocuments = mappedDocuments.filter((document) => {
-    const isDecreto = document.type === "DECRETO" && document.number.trim() === "6.862";
-    const isLeiOrdinaria = document.type === "LEI_ORDINARIA" && document.number.trim() === "5.660";
+    // A comparação agora usa o número já limpo
+    const isDecreto = document.type === "DECRETO" && document.number === "6.862";
+    const isLeiOrdinaria = document.type === "LEI_ORDINARIA" && document.number === "5.660";
 
     return !(isDecreto || isLeiOrdinaria);
   });
@@ -49,13 +56,8 @@ export async function fetchDocuments(): Promise<Document[]> {
   // Remoção de duplicados com base no tipo E número
   const uniqueDocumentsMap = new Map<string, Document>();
   filteredDocuments.forEach((doc) => {
-    // --- ALTERAÇÃO PRINCIPAL AQUI ---
-    // Limpa o número, removendo APENAS as vírgulas e aparando espaços.
-    // Ex: "213," vira "213".
-    const cleanNumber = doc.number.replace(/,/g, "").trim();
-    
-    // A chave composta agora usa o número limpo
-    const compositeKey = `${doc.type}-${cleanNumber}`;
+    // Agora que 'doc.number' já está limpo, não precisamos de uma variável extra
+    const compositeKey = `${doc.type}-${doc.number}`;
     uniqueDocumentsMap.set(compositeKey, doc);
   });
 
