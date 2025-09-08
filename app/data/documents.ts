@@ -13,9 +13,8 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const data = await response.json();
 
-  // Mapeamento e transformação dos dados para o tipo Document
+  // Mapeamento e transformação dos dados
   const mappedDocuments: Document[] = data.map((doc: any) => {
-    // 1. Mapeia os campos normalmente
     const mappedDoc = {
       id: doc.id || doc._id || String(Math.random()),
       type: doc.type || doc.tipo || "PORTARIA",
@@ -31,14 +30,10 @@ export async function fetchDocuments(): Promise<Document[]> {
       fullText: doc.fullText || doc.textoCompleto || doc.conteudo || ""
     };
 
-    // --- NOVO TRECHO: Regra de transformação de tipo ---
-    // 2. Verifica se o tipo é LEI_COMPLEMENTAR e o número contém um ponto "."
-    // Se a condição for verdadeira, altera o tipo para LEI_ORDINARIA.
-    // (Assumindo que "Lei Complementar" é representada como "LEI_COMPLEMENTAR")
+    // Regra: se for Lei Complementar e o número tiver '.', vira Lei Ordinária
     if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
       mappedDoc.type = "LEI_ORDINARIA";
     }
-    // --- FIM DO NOVO TRECHO ---
 
     return mappedDoc;
   });
@@ -54,7 +49,13 @@ export async function fetchDocuments(): Promise<Document[]> {
   // Remoção de duplicados com base no tipo E número
   const uniqueDocumentsMap = new Map<string, Document>();
   filteredDocuments.forEach((doc) => {
-    const compositeKey = `${doc.type}-${doc.number.trim()}`;
+    // --- ALTERAÇÃO PRINCIPAL AQUI ---
+    // Limpa o número, removendo tudo que não for dígito (0-9).
+    // Isso faz com que "213," e "213" sejam tratados como o mesmo número.
+    const cleanNumber = doc.number.replace(/[^0-9]/g, "");
+    
+    // A chave composta agora usa o número limpo
+    const compositeKey = `${doc.type}-${cleanNumber}`;
     uniqueDocumentsMap.set(compositeKey, doc);
   });
 
