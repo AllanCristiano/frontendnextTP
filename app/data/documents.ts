@@ -4,8 +4,6 @@ export async function fetchDocuments(): Promise<Document[]> {
     headers: {
       "Content-Type": "application/json",
     },
-    // MUDANÇA 1: Altere para "no-store" para sempre buscar dados novos do servidor.
-    // Isso evita que o navegador mostre resultados antigos (de cache).
     cache: "no-store",
   });
 
@@ -35,14 +33,8 @@ export async function fetchDocuments(): Promise<Document[]> {
       fullText: doc.fullText || doc.textoCompleto || doc.conteudo || ""
     };
 
-    // --- REGRA RESTAURADA E MELHORADA ---
-    // A condição volta a ser APENAS para números com ponto.
     if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
       mappedDoc.type = "LEI_ORDINARIA";
-      
-      // MUDANÇA 2: Usar replace com expressão regular (/.../i)
-      // O 'i' torna a busca por "Lei Complementar nº" insensível a maiúsculas/minúsculas,
-      // garantindo que funcione mesmo se o texto variar.
       mappedDoc.title = mappedDoc.title.replace(/Lei Complementar nº/i, "Lei Ordinaria nº");
       console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
     }
@@ -72,11 +64,27 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
 
-  // Ordenação do maior para o menor
+  // --- NOVA ORDENAÇÃO: Por ano e depois por número (do maior para o menor) ---
   uniqueDocuments.sort((a, b) => {
-    const numA = parseInt(a.number.replace(/\./g, ''), 10);
-    const numB = parseInt(b.number.replace(/\./g, ''), 10);
-    return numB - numA;
+    // Função auxiliar para extrair ano e número
+    const parseDocumentNumber = (numberStr: string) => {
+      const parts = numberStr.split('/');
+      const num = parseInt(parts[0].replace(/\./g, ''), 10) || 0;
+      // Se houver ano (após a barra), usa o ano. Senão, assume 0 para ordenação.
+      const year = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
+      return { year, num };
+    };
+
+    const docA = parseDocumentNumber(a.number);
+    const docB = parseDocumentNumber(b.number);
+
+    // 1. Compara o ano (ordem decrescente)
+    if (docB.year !== docA.year) {
+      return docB.year - docA.year;
+    }
+
+    // 2. Se os anos forem iguais, compara o número (ordem decrescente)
+    return docB.num - docA.num;
   });
 
   return uniqueDocuments;
