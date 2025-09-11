@@ -9,11 +9,11 @@ import { Pagination } from "./pagination"
 import { Button } from "@/components/ui/button"
 
 const datesByTab = {
-  ALL: "2025-06-18",
-  PORTARIA: "2025-06-18",
-  LEI_ORDINARIA: "2025-06-18",
+  ALL: "2025-09-11",
+  PORTARIA: "2025-09-11",
+  LEI_ORDINARIA: "2025-09-11",
   LEI_COMPLEMENTAR: "2025-06-18",
-  DECRETO: "2025-06-18",
+  DECRETO: "2025-09-11",
 };
 
 interface DocumentListProps {
