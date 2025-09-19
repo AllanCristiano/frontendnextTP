@@ -81,14 +81,59 @@ export function DocumentList({ documents }: DocumentListProps) {
     setCurrentPage(1)
   }
 
-  // Função para baixar o PDF usando o endpoint interno
-  const handleDownload = (filename: string) => {
-    const url = `/documentos/${filename}.pdf`
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `${filename}.pdf`
-    link.click()
+  // Função para baixar o PDF usando o endpoint interno ou a API
+const handleDownload = async (doc: Document, filename: string) => {
+  // Caso 1: O documento não tem uma URL externa, baixa de um caminho local.
+  if (doc.url === "") {
+    const url = `/documentos/${filename}.pdf`; // Caminho para o arquivo na pasta 'public'
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${filename}.pdf`;
+    document.body.appendChild(link); // Adiciona ao corpo para compatibilidade
+    link.click();
+    document.body.removeChild(link); // Remove após o clique
+  } 
+  // Caso 2: O documento tem uma URL externa, precisa ser baixado via API.
+  else {
+    try {
+      // 1. Constrói a URL da API para o download.
+      // É uma boa prática usar variáveis de ambiente para a URL base da API.
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://painelesic.aracaju.se.gov.br";
+      const apiFilename = `${doc.type}/${filename}.pdf`;
+      const url = `${baseUrl}/files/download?filename=${encodeURIComponent(apiFilename)}`;
+
+      // 2. Faz a requisição GET para a API.
+      const response = await fetch(url);
+
+      // 3. Verifica se a requisição foi bem-sucedida.
+      if (!response.ok) {
+        throw new Error(`Falha no download: ${response.statusText}`);
+      }
+
+      // 4. Converte a resposta em um Blob (Binary Large Object).
+      const blob = await response.blob();
+
+      // 5. Cria uma URL temporária para o Blob.
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      // 6. Cria um link <a> invisível para iniciar o download.
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${filename}.pdf`; // Nome do arquivo que o usuário verá.
+      document.body.appendChild(link);
+      link.click();
+      
+      // 7. Limpa o link e a URL do objeto para liberar memória.
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+    } catch (error) {
+      console.error("Erro ao baixar o arquivo:", error);
+      // Opcional: mostrar uma notificação de erro para o usuário.
+      alert("Não foi possível baixar o arquivo. Tente novamente mais tarde.");
+    }
   }
+};
 
     // Formata data ISO (YYYY-MM-DD) para extenso em pt-BR
   function formatarDataPorExtenso(dataStr: string): string {
@@ -252,7 +297,7 @@ export function DocumentList({ documents }: DocumentListProps) {
                       <Button
                         variant="outline"
                         onClick={() =>
-                          handleDownload(doc.number.split("/").join("").split(".").join("") + "-" + doc.date)
+                          handleDownload(doc, doc.number.split("/").join("").split(".").join("") + "-" + doc.date)
                         }
                         className="w-full sm:w-auto group hover:bg-blue-50 dark:hover:bg-blue-900 border-2 border-blue-200 hover:border-blue-300 dark:border-blue-600 dark:hover:border-blue-500"
                       >
