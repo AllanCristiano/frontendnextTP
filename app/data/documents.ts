@@ -1,5 +1,5 @@
 export async function fetchDocuments(): Promise<Document[]> {
-  const response = await fetch("http://localhost:3001/documento", {
+  const response = await fetch("https://painelesic.aracaju.se.gov.br/documento", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

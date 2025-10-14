@@ -98,7 +98,7 @@ const handleDownload = async (doc: Document, filename: string) => {
     try {
       // 1. Constrói a URL da API para o download.
       // É uma boa prática usar variáveis de ambiente para a URL base da API.
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://painelesic.aracaju.se.gov.br";
+      const baseUrl = "https://painelesic.aracaju.se.gov.br";
       const apiFilename = `${doc.type}/${filename}.pdf`;
       const url = `${baseUrl}/files/download?filename=${encodeURIComponent(apiFilename)}`;
 
