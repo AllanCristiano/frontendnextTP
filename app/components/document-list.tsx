@@ -20,15 +20,15 @@ import { Button } from "@/components/ui/button"
 
 const datesByTab = {
 
-ALL: "2025-09-11",
+ALL: "2025-10-16",
 
-PORTARIA: "2025-09-11",
+PORTARIA: "2025-10-16",
 
-LEI_ORDINARIA: "2025-09-11",
+LEI_ORDINARIA: "2025-10-16",
 
-LEI_COMPLEMENTAR: "2025-06-18",
+LEI_COMPLEMENTAR: "2025-10-16",
 
-DECRETO: "2025-09-11",
+DECRETO: "2025-10-16",
 
 };
 
