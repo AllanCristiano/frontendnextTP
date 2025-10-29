@@ -1,3 +1,15 @@
+// Definindo a interface Document com base no seu mapeamento
+interface Document {
+  id: string;
+  type: string;
+  number: string;
+  title: string;
+  description: string;
+  date: string; // Espera-se que seja no formato "YYYY-MM-DD"
+  url: string;
+  fullText: string;
+}
+
 export async function fetchDocuments(): Promise<Document[]> {
   const response = await fetch("https://painelesic.aracaju.se.gov.br/documento", {
     method: "GET",
@@ -36,12 +48,12 @@ export async function fetchDocuments(): Promise<Document[]> {
     if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
       mappedDoc.type = "LEI_ORDINARIA";
       mappedDoc.title = mappedDoc.title.replace(/Lei Complementar nº/i, "Lei Ordinaria nº");
-      console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
+      // console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
     }
 
     if (mappedDoc.type === "LEI_ORDINARIA"){
       mappedDoc.title = mappedDoc.title.replace(/Lei nº/i, "Lei Ordinaria nº");
-      console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
+      // console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
     }
 
     return mappedDoc;
@@ -64,27 +76,36 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
 
-  // --- NOVA ORDENAÇÃO: Por ano e depois por número (do maior para o menor) ---
+  // --- NOVA ORDENAÇÃO: Por Ano (da data), Mês (da data) e Número (do 'number') ---
   uniqueDocuments.sort((a, b) => {
-    // Função auxiliar para extrair ano e número
-    const parseDocumentNumber = (numberStr: string) => {
-      const parts = numberStr.split('/');
-      const num = parseInt(parts[0].replace(/\./g, ''), 10) || 0;
-      // Se houver ano (após a barra), usa o ano. Senão, assume 0 para ordenação.
-      const year = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
-      return { year, num };
-    };
+    // 1. Preparar os dados de 'a'
+    // Criamos datas UTC para evitar problemas de fuso horário na extração
+    const dateA = new Date(a.date + 'T00:00:00Z'); 
+    const yearA = dateA.getUTCFullYear();
+    const monthA = dateA.getUTCMonth(); // 0 = Janeiro, 11 = Dezembro
+    // Pega apenas a parte do número antes da barra (ex: "5.660" de "5.660/2023")
+    const numA = parseInt(a.number.split('/')[0].replace(/\./g, ''), 10) || 0;
 
-    const docA = parseDocumentNumber(a.number);
-    const docB = parseDocumentNumber(b.number);
+    // 2. Preparar os dados de 'b'
+    const dateB = new Date(b.date + 'T00:00:00Z');
+    const yearB = dateB.getUTCFullYear();
+    const monthB = dateB.getUTCMonth();
+    const numB = parseInt(b.number.split('/')[0].replace(/\./g, ''), 10) || 0;
 
-    // 1. Compara o ano (ordem decrescente)
-    if (docB.year !== docA.year) {
-      return docB.year - docA.year;
+    // 3. Critérios de Ordenação (todos em ordem decrescente)
+
+    // 3.1. Compara o Ano (descendente)
+    if (yearB !== yearA) {
+      return yearB - yearA;
     }
 
-    // 2. Se os anos forem iguais, compara o número (ordem decrescente)
-    return docB.num - docA.num;
+    // 3.2. Se os anos são iguais, compara o Mês (descendente)
+    if (monthB !== monthA) {
+      return monthB - monthA;
+    }
+
+    // 3.3. Se os meses são iguais, compara o Número (descendente)
+    return numB - numA;
   });
 
   return uniqueDocuments;
