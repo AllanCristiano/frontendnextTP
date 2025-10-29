@@ -63,8 +63,9 @@ export async function fetchDocuments(): Promise<Document[]> {
   const filteredDocuments = mappedDocuments.filter((document) => {
     const isDecreto = document.type === "DECRETO" && document.number === "6.862";
     const isLeiOrdinaria = document.type === "LEI_ORDINARIA" && document.number === "5.660";
+    const isPortaria = document.type === "PORTARIA" && document.number === "2";
 
-    return !(isDecreto || isLeiOrdinaria);
+    return !(isDecreto || isLeiOrdinaria || isPortaria);
   });
 
   // Remoção de duplicados com base no tipo E número
@@ -76,13 +77,14 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
 
-  // --- NOVA ORDENAÇÃO: Por Ano (da data), Mês (da data) e Número (do 'number') ---
+  // --- NOVA ORDENAÇÃO: Por Ano, Mês, Dia (da data) e Número (do 'number') ---
   uniqueDocuments.sort((a, b) => {
     // 1. Preparar os dados de 'a'
     // Criamos datas UTC para evitar problemas de fuso horário na extração
     const dateA = new Date(a.date + 'T00:00:00Z'); 
     const yearA = dateA.getUTCFullYear();
     const monthA = dateA.getUTCMonth(); // 0 = Janeiro, 11 = Dezembro
+    const dayA = dateA.getUTCDate();
     // Pega apenas a parte do número antes da barra (ex: "5.660" de "5.660/2023")
     const numA = parseInt(a.number.split('/')[0].replace(/\./g, ''), 10) || 0;
 
@@ -90,6 +92,7 @@ export async function fetchDocuments(): Promise<Document[]> {
     const dateB = new Date(b.date + 'T00:00:00Z');
     const yearB = dateB.getUTCFullYear();
     const monthB = dateB.getUTCMonth();
+    const dayB = dateB.getUTCDate();
     const numB = parseInt(b.number.split('/')[0].replace(/\./g, ''), 10) || 0;
 
     // 3. Critérios de Ordenação (todos em ordem decrescente)
@@ -104,7 +107,12 @@ export async function fetchDocuments(): Promise<Document[]> {
       return monthB - monthA;
     }
 
-    // 3.3. Se os meses são iguais, compara o Número (descendente)
+    // 3.3. Se os meses são iguais, compara o Dia (descendente)
+    if (dayB !== dayA) {
+      return dayB - dayA;
+    }
+
+    // 3.4. Se os dias são iguais, compara o Número (descendente)
     return numB - numA;
   });
 
