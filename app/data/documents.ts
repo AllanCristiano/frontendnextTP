@@ -1,14 +1,5 @@
-// Definindo a interface Document com base no seu mapeamento
-interface Document {
-  id: string;
-  type: string;
-  number: string;
-  title: string;
-  description: string;
-  date: string; // Espera-se que seja no formato "YYYY-MM-DD"
-  url: string;
-  fullText: string;
-}
+// Importe os tipos centralizados do seu arquivo de tipos
+import type { Document, DocumentType } from "../types";
 
 export async function fetchDocuments(): Promise<Document[]> {
   const response = await fetch("https://painelesic.aracaju.se.gov.br/documento", {
@@ -29,10 +20,15 @@ export async function fetchDocuments(): Promise<Document[]> {
   const mappedDocuments: Document[] = data.map((doc: any) => {
     const rawNumber = doc.number || doc.numero || doc.num || "";
     const rawTitle = doc.title || doc.titulo || doc.nome || "";
+    
+    // Pegamos o tipo bruto da API
+    const rawType = doc.type || doc.tipo || "PORTARIA";
 
     const mappedDoc = {
       id: doc.id || doc._id || String(Math.random()),
-      type: doc.type || doc.tipo || "PORTARIA",
+      // Usamos 'as DocumentType' para dizer ao TypeScript:
+      // "Confie em mim, este valor (ex: "PORTARIA") é um DocumentType"
+      type: rawType as DocumentType,
       number: rawNumber.replace(/,/g, "").trim(),
       title: rawTitle,
       description: doc.description || doc.descricao || doc.desc || "",
@@ -46,6 +42,8 @@ export async function fetchDocuments(): Promise<Document[]> {
     };
 
     if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
+      // Esta atribuição agora é segura, pois "LEI_ORDINARIA"
+      // é um valor válido dentro do tipo DocumentType
       mappedDoc.type = "LEI_ORDINARIA";
       mappedDoc.title = mappedDoc.title.replace(/Lei Complementar nº/i, "Lei Ordinaria nº");
       // console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
@@ -61,6 +59,7 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   // Filtragem: remover documentos específicos
   const filteredDocuments = mappedDocuments.filter((document) => {
+    // Esta verificação agora é 100% segura para o TypeScript
     const isDecreto = document.type === "DECRETO" && document.number === "6.862";
     const isLeiOrdinaria = document.type === "LEI_ORDINARIA" && document.number === "5.660";
     const isPortaria = document.type === "PORTARIA" && document.number === "2";
@@ -77,42 +76,29 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
 
-  // --- NOVA ORDENAÇÃO: Por Ano, Mês, Dia (da data) e Número (do 'number') ---
+  // ORDENAÇÃO: Por Ano, Mês, Dia (da data) e Número (do 'number') ---
   uniqueDocuments.sort((a, b) => {
-    // 1. Preparar os dados de 'a'
-    // Criamos datas UTC para evitar problemas de fuso horário na extração
     const dateA = new Date(a.date + 'T00:00:00Z'); 
     const yearA = dateA.getUTCFullYear();
-    const monthA = dateA.getUTCMonth(); // 0 = Janeiro, 11 = Dezembro
+    const monthA = dateA.getUTCMonth(); 
     const dayA = dateA.getUTCDate();
-    // Pega apenas a parte do número antes da barra (ex: "5.660" de "5.660/2023")
     const numA = parseInt(a.number.split('/')[0].replace(/\./g, ''), 10) || 0;
 
-    // 2. Preparar os dados de 'b'
     const dateB = new Date(b.date + 'T00:00:00Z');
     const yearB = dateB.getUTCFullYear();
     const monthB = dateB.getUTCMonth();
     const dayB = dateB.getUTCDate();
     const numB = parseInt(b.number.split('/')[0].replace(/\./g, ''), 10) || 0;
 
-    // 3. Critérios de Ordenação (todos em ordem decrescente)
-
-    // 3.1. Compara o Ano (descendente)
     if (yearB !== yearA) {
       return yearB - yearA;
     }
-
-    // 3.2. Se os anos são iguais, compara o Mês (descendente)
     if (monthB !== monthA) {
       return monthB - monthA;
     }
-
-    // 3.3. Se os meses são iguais, compara o Dia (descendente)
     if (dayB !== dayA) {
       return dayB - dayA;
     }
-
-    // 3.4. Se os dias são iguais, compara o Número (descendente)
     return numB - numA;
   });
 

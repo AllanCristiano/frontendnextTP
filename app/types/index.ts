@@ -1,4 +1,7 @@
-export type DocumentType = 'PORTARIA' | 'LEI_ORDINARIA' | 'LEI_COMPLEMENTAR' | 'DECRETO';
+export type DocumentType = 
+'PORTARIA' | 'LEI_ORDINARIA' 
+| 'LEI_COMPLEMENTAR' | 'DECRETO' 
+| 'EMENDAS' | 'LEI_ORGANICA';
 
 export interface Document {
   id: string;
