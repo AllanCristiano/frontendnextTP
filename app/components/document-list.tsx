@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-// Certifique-se de que 'DocumentType' em '../types' agora inclui "RESOLUCAO"
+// Certifique-se de que 'DocumentType' em '../types' está sincronizado com os tipos usados aqui
 import type { Document, DocumentType, DateRange } from "../types"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { FileText, Download, FileBarChart2, Filter, Files } from "lucide-react"
@@ -15,9 +15,7 @@ const datesByTab = {
   LEI_ORDINARIA: "2025-10-29",
   LEI_COMPLEMENTAR: "2025-10-29",
   DECRETO: "2025-10-29",
-  EMENDAS: "2025-10-29",
-  LEI_ORGANICA: "2025-10-29",
-};
+}
 
 interface DocumentListProps {
   documents: Document[]
@@ -43,7 +41,9 @@ export function DocumentList({ documents }: DocumentListProps) {
       cleanTitle.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
       cleanDescription.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
       cleanNumber.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
-      docFullText.toLowerCase().includes(" " + searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+      docFullText
+        .toLowerCase()
+        .includes(" " + searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
 
     const matchesTab = activeTab === "ALL" || doc.type === activeTab
 
@@ -62,8 +62,6 @@ export function DocumentList({ documents }: DocumentListProps) {
       ORDINARY_LAW: documents.filter((doc) => doc.type === "LEI_ORDINARIA").length,
       COMPLEMENTARY_LAW: documents.filter((doc) => doc.type === "LEI_COMPLEMENTAR").length,
       DECREE: documents.filter((doc) => doc.type === "DECRETO").length,
-      EMENTS: documents.filter((doc) => doc.type === "EMENDAS").length,
-      ORGANIC_LAW: documents.filter((doc) => doc.type === "LEI_ORGANICA").length,
     },
   }
 
@@ -87,58 +85,43 @@ export function DocumentList({ documents }: DocumentListProps) {
 
   // Função para baixar o PDF usando o endpoint interno ou a API
   const handleDownload = async (doc: Document, filename: string) => {
-    // Caso 1: O documento não tem uma URL externa, baixa de um caminho local.
     if (doc.url === "") {
-      const url = `/documentos/${filename}.pdf` // Caminho para o arquivo na pasta 'public'
+      const url = `/documentos/${filename}.pdf`
       const link = document.createElement("a")
       link.href = url
       link.download = `${filename}.pdf`
-      document.body.appendChild(link) // Adiciona ao corpo para compatibilidade
+      document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link) // Remove após o clique
-    }
-    // Caso 2: O documento tem uma URL externa, precisa ser baixado via API.
-    else {
+      document.body.removeChild(link)
+    } else {
       try {
-        // 1. Constrói a URL da API para o download.
-        // É uma boa prática usar variáveis de ambiente para a URL base da API.
         const baseUrl = "https://painelesic.aracaju.se.gov.br"
         const apiFilename = `${doc.type}/${filename}.pdf`
         const url = `${baseUrl}/files/download?filename=${encodeURIComponent(apiFilename)}`
 
-        // 2. Faz a requisição GET para a API.
         const response = await fetch(url)
 
-        // 3. Verifica se a requisição foi bem-sucedida.
         if (!response.ok) {
           throw new Error(`Falha no download: ${response.statusText}`)
         }
 
-        // 4. Converte a resposta em um Blob (Binary Large Object).
         const blob = await response.blob()
-
-        // 5. Cria uma URL temporária para o Blob.
         const downloadUrl = window.URL.createObjectURL(blob)
-
-        // 6. Cria um link <a> invisível para iniciar o download.
         const link = document.createElement("a")
         link.href = downloadUrl
-        link.download = `${filename}.pdf` // Nome do arquivo que o usuário verá.
+        link.download = `${filename}.pdf`
         document.body.appendChild(link)
         link.click()
 
-        // 7. Limpa o link e a URL do objeto para liberar memória.
         document.body.removeChild(link)
         window.URL.revokeObjectURL(downloadUrl)
       } catch (error) {
         console.error("Erro ao baixar o arquivo:", error)
-        // Opcional: mostrar uma notificação de erro para o usuário.
         alert("Não foi possível baixar o arquivo. Tente novamente mais tarde.")
       }
     }
   }
 
-  // Formata data ISO (YYYY-MM-DD) para extenso em pt-BR
   function formatarDataPorExtenso(dataStr: string): string {
     if (!dataStr) return ""
     const parts = dataStr.split("-")
@@ -166,12 +149,7 @@ export function DocumentList({ documents }: DocumentListProps) {
     { id: "LEI_ORDINARIA", label: "Leis Ordinárias" },
     { id: "LEI_COMPLEMENTAR", label: "Leis Complementares" },
     { id: "DECRETO", label: "Decretos" },
-    { id: "EMENDAS", label: "Emendas" },
-    { id: "LEI_ORGANICA", label: "Leis Organicas" },
   ]
-
-  let activeTabLabel = "Todos"
-  let activeTabData = tabs.find((tab) => tab.id === activeTab)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -200,7 +178,7 @@ export function DocumentList({ documents }: DocumentListProps) {
                 <CardTitle className="text-sm sm:text-lg font-medium">Distribuição por Tipo</CardTitle>
                 <FileBarChart2 className="h-5 w-5 sm:h-6 sm:w-6 opacity-80" />
               </div>
-              {/* 4. JSX ATUALIZADO */}
+              
               <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <div className="space-y-1 sm:space-y-2">
                   <div className="flex justify-between items-center">
@@ -210,11 +188,6 @@ export function DocumentList({ documents }: DocumentListProps) {
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm">Leis Ordinárias</span>
                     <span className="font-bold text-sm sm:text-base">{documentStats.byType.ORDINARY_LAW}</span>
-                  </div>
-                  {/* ADICIONADO O QUE FALTAVA */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs sm:text-sm">Emendas</span>
-                    <span className="font-bold text-sm sm:text-base">{documentStats.byType.EMENTS}</span>
                   </div>
                 </div>
 
@@ -226,11 +199,6 @@ export function DocumentList({ documents }: DocumentListProps) {
                   <div className="flex justify-between items-center">
                     <span className="text-xs sm:text-sm">Decretos</span>
                     <span className="font-bold text-sm sm:text-base">{documentStats.byType.DECREE}</span>
-                  </div>
-                  {/* ADICIONADO O NOVO TIPO */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs sm:text-sm">Resoluções</span>
-                    <span className="font-bold text-sm sm:text-base">{documentStats.byType.ORGANIC_LAW}</span>
                   </div>
                 </div>
               </div>
@@ -251,7 +219,6 @@ export function DocumentList({ documents }: DocumentListProps) {
             {/* Tab Navigation */}
             <div className="flex justify-center border-b border-gray-200 dark:border-gray-700">
               <div className="flex overflow-x-auto scrollbar-hide max-w-full">
-                {/* 5. O NOVO TIPO APARECERÁ AQUI AUTOMATICAMENTE DEVIDO À MUDANÇA NO ARRAY 'tabs' */}
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
@@ -283,7 +250,8 @@ export function DocumentList({ documents }: DocumentListProps) {
             {/* Tab Content */}
             <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800">
               <div className="pb-4 text-gray-600 text-sm">
-                Atualizado em {formatarDataPorExtenso(datesByTab[activeTab])}.
+                {/* Fallback para evitar erro se activeTab não estiver em datesByTab */}
+                Atualizado em {formatarDataPorExtenso(datesByTab[activeTab as keyof typeof datesByTab] || datesByTab.ALL)}.
               </div>
               <div className="space-y-4">
                 {paginatedDocuments.map((doc) => (
