@@ -2,13 +2,27 @@
 import type { Document, DocumentType } from "../types";
 
 export async function fetchDocuments(): Promise<Document[]> {
-  const response = await fetch("https://painelesic.aracaju.se.gov.br/documento", {
+  
+  // --- CORREÇÃO AQUI ---
+  // Verifica se o código está rodando no Servidor (Node.js) ou no Navegador
+  const isServer = typeof window === 'undefined';
+  
+  // Se for servidor, bate direto na porta 3001 (interno, HTTP rápido e sem bloqueio).
+  // Se for navegador, usa o domínio público (HTTPS).
+  const baseUrl = isServer 
+    ? "http://127.0.0.1:3001" 
+    : "https://painelesic.aracaju.se.gov.br";
+
+  // console.log(`[fetchDocuments] Buscando em: ${baseUrl}/documento`); // Descomente para debug se precisar
+
+  const response = await fetch(`${baseUrl}/documento`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
     cache: "no-store",
   });
+  // ---------------------
 
   if (!response.ok) {
     throw new Error(`Erro na API: ${response.status} - ${response.statusText}`);
@@ -26,8 +40,6 @@ export async function fetchDocuments(): Promise<Document[]> {
 
     const mappedDoc = {
       id: doc.id || doc._id || String(Math.random()),
-      // Usamos 'as DocumentType' para dizer ao TypeScript:
-      // "Confie em mim, este valor (ex: "PORTARIA") é um DocumentType"
       type: rawType as DocumentType,
       number: rawNumber.replace(/,/g, "").trim(),
       title: rawTitle,
@@ -42,16 +54,12 @@ export async function fetchDocuments(): Promise<Document[]> {
     };
 
     if (mappedDoc.type === "LEI_COMPLEMENTAR" && mappedDoc.number.includes(".")) {
-      // Esta atribuição agora é segura, pois "LEI_ORDINARIA"
-      // é um valor válido dentro do tipo DocumentType
       mappedDoc.type = "LEI_ORDINARIA";
       mappedDoc.title = mappedDoc.title.replace(/Lei Complementar nº/i, "Lei Ordinaria nº");
-      // console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
     }
 
     if (mappedDoc.type === "LEI_ORDINARIA"){
       mappedDoc.title = mappedDoc.title.replace(/Lei nº/i, "Lei Ordinaria nº");
-      // console.log(`Título corrigido para o documento ID ${mappedDoc.id}: ${mappedDoc.title}`);
     }
 
     return mappedDoc;
@@ -59,7 +67,6 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   // Filtragem: remover documentos específicos
   const filteredDocuments = mappedDocuments.filter((document) => {
-    // Esta verificação agora é 100% segura para o TypeScript
     const isDecreto = document.type === "DECRETO" && document.number === "6.862";
     const isLeiOrdinaria = document.type === "LEI_ORDINARIA" && document.number === "5.660";
     const isPortaria = document.type === "PORTARIA" && document.number === "2";
@@ -76,7 +83,7 @@ export async function fetchDocuments(): Promise<Document[]> {
 
   const uniqueDocuments = Array.from(uniqueDocumentsMap.values());
 
-  // ORDENAÇÃO: Por Ano, Mês, Dia (da data) e Número (do 'number') ---
+  // ORDENAÇÃO
   uniqueDocuments.sort((a, b) => {
     const dateA = new Date(a.date + 'T00:00:00Z'); 
     const yearA = dateA.getUTCFullYear();
@@ -90,15 +97,9 @@ export async function fetchDocuments(): Promise<Document[]> {
     const dayB = dateB.getUTCDate();
     const numB = parseInt(b.number.split('/')[0].replace(/\./g, ''), 10) || 0;
 
-    if (yearB !== yearA) {
-      return yearB - yearA;
-    }
-    if (monthB !== monthA) {
-      return monthB - monthA;
-    }
-    if (dayB !== dayA) {
-      return dayB - dayA;
-    }
+    if (yearB !== yearA) return yearB - yearA;
+    if (monthB !== monthA) return monthB - monthA;
+    if (dayB !== dayA) return dayB - dayA;
     return numB - numA;
   });
 
