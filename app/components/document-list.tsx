@@ -83,42 +83,43 @@ export function DocumentList({ documents }: DocumentListProps) {
     setCurrentPage(1)
   }
 
-  // Função para baixar o PDF usando o endpoint interno ou a API
-  const handleDownload = async (doc: Document, filename: string) => {
-    if (doc.url === "") {
-      const url = `/documentos/${filename}.pdf`
+  // 🔧 Nova lógica de download: Usa a URL direta do banco e extrai o nome perfeito
+  const handleDownload = async (doc: Document) => {
+    if (!doc.url) {
+      alert("Link do documento indisponível.")
+      return
+    }
+
+    try {
+      // Endpoint da sua API
+      const baseUrl = "https://painelesic.aracaju.se.gov.br"
+      
+      // Envia a URL completinha que está no banco para a API, o backend já sabe se virar com isso
+      const url = `${baseUrl}/files/download?filename=${encodeURIComponent(doc.url)}`
+
+      const response = await fetch(url)
+
+      if (!response.ok) {
+        throw new Error(`Falha no download: ${response.statusText}`)
+      }
+
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      
+      // Pega o nome do arquivo lá do final da URL do banco (ex: LEI_ORDINARIA_6295_2025-12-31.pdf)
+      const nomeArquivo = doc.url.split('/').pop() || `Documento_${doc.number}.pdf`
+
       const link = document.createElement("a")
-      link.href = url
-      link.download = `${filename}.pdf`
+      link.href = downloadUrl
+      link.download = nomeArquivo
       document.body.appendChild(link)
       link.click()
+
       document.body.removeChild(link)
-    } else {
-      try {
-        const baseUrl = "https://painelesic.aracaju.se.gov.br"
-        const apiFilename = `${doc.type}/${filename}.pdf`
-        const url = `${baseUrl}/files/download?filename=${encodeURIComponent(apiFilename)}`
-
-        const response = await fetch(url)
-
-        if (!response.ok) {
-          throw new Error(`Falha no download: ${response.statusText}`)
-        }
-
-        const blob = await response.blob()
-        const downloadUrl = window.URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.href = downloadUrl
-        link.download = `${filename}.pdf`
-        document.body.appendChild(link)
-        link.click()
-
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(downloadUrl)
-      } catch (error) {
-        console.error("Erro ao baixar o arquivo:", error)
-        alert("Não foi possível baixar o arquivo. Tente novamente mais tarde.")
-      }
+      window.URL.revokeObjectURL(downloadUrl)
+    } catch (error) {
+      console.error("Erro ao baixar o arquivo:", error)
+      alert("Não foi possível baixar o arquivo. Tente novamente mais tarde.")
     }
   }
 
@@ -280,9 +281,7 @@ export function DocumentList({ documents }: DocumentListProps) {
                       </p>
                       <Button
                         variant="outline"
-                        onClick={() =>
-                          handleDownload(doc, doc.number.split("/").join("").split(".").join("") + "-" + doc.date)
-                        }
+                        onClick={() => handleDownload(doc)}
                         className="w-full sm:w-auto group hover:bg-blue-50 dark:hover:bg-blue-900 border-2 border-blue-200 hover:border-blue-300 dark:border-blue-600 dark:hover:border-blue-500"
                       >
                         <Download className="h-4 w-4 text-blue-700 group-hover:text-blue-800 mr-2" />
