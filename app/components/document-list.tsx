@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 // Certifique-se de que 'DocumentType' em '../types' está sincronizado com os tipos usados aqui
 import type { Document, DocumentType, DateRange } from "../types"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
@@ -8,14 +8,6 @@ import { FileText, Download, FileBarChart2, Filter, Files } from "lucide-react"
 import { DocumentFilters } from "./document-filters"
 import { Pagination } from "./pagination"
 import { Button } from "@/components/ui/button"
-
-const datesByTab = {
-  ALL: "2026-05-28",
-  PORTARIA: "2026-05-28",
-  LEI_ORDINARIA: "2026-05-28",
-  LEI_COMPLEMENTAR: "2026-05-28",
-  DECRETO: "2026-05-28",
-}
 
 interface DocumentListProps {
   documents: Document[]
@@ -54,6 +46,24 @@ export function DocumentList({ documents }: DocumentListProps) {
     return matchesSearch && matchesTab && matchesDateRange
   })
 
+  // 🔧 Nova lógica: Encontra a data mais recente com base na aba atual
+  const ultimaAtualizacao = useMemo(() => {
+    if (!documents || documents.length === 0) return null
+
+    const docsParaConsiderar =
+      activeTab === "ALL" ? documents : documents.filter((doc) => doc.type === activeTab)
+
+    if (docsParaConsiderar.length === 0) return null
+
+    const docMaisRecente = docsParaConsiderar.reduce((maisRecente, atual) => {
+      return new Date(atual.date).getTime() > new Date(maisRecente.date).getTime()
+        ? atual
+        : maisRecente
+    })
+
+    return docMaisRecente.date
+  }, [documents, activeTab])
+
   const documentStats = {
     total: documents.length,
     filtered: filteredDocuments.length,
@@ -83,7 +93,6 @@ export function DocumentList({ documents }: DocumentListProps) {
     setCurrentPage(1)
   }
 
-  // 🔧 Nova lógica de download: Usa a URL direta do banco e extrai o nome perfeito
   const handleDownload = async (doc: Document) => {
     if (!doc.url) {
       alert("Link do documento indisponível.")
@@ -91,10 +100,7 @@ export function DocumentList({ documents }: DocumentListProps) {
     }
 
     try {
-      // Endpoint da sua API
       const baseUrl = "https://painelesic.aracaju.se.gov.br"
-      
-      // Envia a URL completinha que está no banco para a API, o backend já sabe se virar com isso
       const url = `${baseUrl}/files/download?filename=${encodeURIComponent(doc.url)}`
 
       const response = await fetch(url)
@@ -106,7 +112,6 @@ export function DocumentList({ documents }: DocumentListProps) {
       const blob = await response.blob()
       const downloadUrl = window.URL.createObjectURL(blob)
       
-      // Pega o nome do arquivo lá do final da URL do banco (ex: LEI_ORDINARIA_6295_2025-12-31.pdf)
       const nomeArquivo = doc.url.split('/').pop() || `Documento_${doc.number}.pdf`
 
       const link = document.createElement("a")
@@ -155,7 +160,6 @@ export function DocumentList({ documents }: DocumentListProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        {/* Stats Cards - Responsivo */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card className="bg-gradient-to-br from-blue-700 to-blue-500 text-white">
             <CardHeader className="p-4 sm:p-6">
@@ -214,10 +218,8 @@ export function DocumentList({ documents }: DocumentListProps) {
           hideTypeFilter={true}
         />
 
-        {/* CSS-Only Style Tabs */}
         <div className="mb-6 sm:mb-8">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* Tab Navigation */}
             <div className="flex justify-center border-b border-gray-200 dark:border-gray-700">
               <div className="flex overflow-x-auto scrollbar-hide max-w-full">
                 {tabs.map((tab) => (
@@ -239,7 +241,6 @@ export function DocumentList({ documents }: DocumentListProps) {
                       <span className="whitespace-nowrap">{tab.label}</span>
                     </div>
 
-                    {/* Active indicator line */}
                     {activeTab === tab.id && (
                       <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-700 dark:bg-blue-400 transform transition-all duration-300 rounded-t-sm" />
                     )}
@@ -248,12 +249,15 @@ export function DocumentList({ documents }: DocumentListProps) {
               </div>
             </div>
 
-            {/* Tab Content */}
             <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800">
-              <div className="pb-4 text-gray-600 text-sm">
-                {/* Fallback para evitar erro se activeTab não estiver em datesByTab */}
-                Atualizado em {formatarDataPorExtenso(datesByTab[activeTab as keyof typeof datesByTab] || datesByTab.ALL)}.
-              </div>
+              
+              {/* Exibe a data de atualização apenas se houver documentos na categoria */}
+              {ultimaAtualizacao && (
+                <div className="pb-4 text-gray-600 text-sm">
+                  Atualizado em {formatarDataPorExtenso(ultimaAtualizacao)}.
+                </div>
+              )}
+
               <div className="space-y-4">
                 {paginatedDocuments.map((doc) => (
                   <Card
