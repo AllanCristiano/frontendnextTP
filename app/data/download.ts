@@ -1,43 +1,41 @@
-// pages/api/download.ts
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 
-// Defina a URL do backend diretamente aqui (sem usar .env)
-const BACKEND_URL = "http://localhost:3001";
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Permite apenas requisições GET
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método não permitido." });
-  }
-
-  const { filename } = req.query;
-
-  // Valida o parâmetro "filename"
-  if (!filename || Array.isArray(filename)) {
-    return res.status(400).json({ error: "Filename inválido." });
-  }
-
-  // Constroi a URL para buscar o PDF no seu backend
-  const url = `${BACKEND_URL}/documento/download/${filename}.pdf`;
-
+export async function GET(request: NextRequest) {
   try {
-    // Requisição para o backend
-    const response = await fetch(url);
-    if (!response.ok) {
-      return res
-        .status(response.status)
-        .json({ error: "Erro ao buscar o PDF no backend." });
+    const searchParams = request.nextUrl.searchParams;
+    let filename = searchParams.get("filename");
+
+    if (!filename) {
+      return NextResponse.json({ error: 'O parâmetro "filename" é obrigatório.' }, { status: 400 });
     }
 
-    // Lê o stream como um ArrayBuffer e converte para um Buffer
-    const arrayBuffer = await response.arrayBuffer();
-    const pdfBuffer = Buffer.from(arrayBuffer);
+    // Extrai o caminho relativo caso venha a URL inteira
+    if (filename.includes("atos-normativos/")) {
+      filename = filename.split("atos-normativos/")[1];
+    }
 
-    // Define os headers para download do arquivo PDF
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}.pdf"`);
-    return res.status(200).send(pdfBuffer);
+    const apiBaseUrl = "https://transparenciaapi.aracaju.se.gov.br";
+    const externalApiUrl = `${apiBaseUrl}/files/download?filename=${encodeURIComponent(filename)}`;
+
+    const response = await fetch(externalApiUrl);
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: `Falha ao buscar o arquivo no backend: ${response.statusText}` },
+        { status: response.status }
+      );
+    }
+
+    const blob = await response.blob();
+    const headers = new Headers();
+    headers.set("Content-Type", "application/pdf");
+
+    const downloadFilename = filename.split("/").pop() || "documento.pdf";
+    headers.set("Content-Disposition", `attachment; filename="${downloadFilename}"`);
+
+    return new NextResponse(blob, { status: 200, headers });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message || "Erro interno." });
+    console.error("Erro no proxy de download:", error);
+    return NextResponse.json({ error: error.message || "Erro interno." }, { status: 500 });
   }
 }

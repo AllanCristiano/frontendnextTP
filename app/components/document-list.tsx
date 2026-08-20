@@ -42,7 +42,7 @@ export function DocumentList() {
       const cleanDescription = doc.description.replace("/", "").replace(".", "")
       const cleanNumber = doc.number.replace("/", "").replace(".", "")
       const docFullText = (doc.fullText || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      
+
       const matchesSearch =
         cleanTitle.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
         cleanDescription.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
@@ -123,8 +123,8 @@ export function DocumentList() {
 
       const blob = await response.blob()
       const downloadUrl = window.URL.createObjectURL(blob)
-      
-      const nomeArquivo = doc.url.split('/').pop() || `Documento_${doc.number}.pdf`
+
+      const nomeArquivo = doc.url.split("/").pop() || `Documento_${doc.number}.pdf`
 
       const link = document.createElement("a")
       link.href = downloadUrl
@@ -206,7 +206,7 @@ export function DocumentList() {
                 <CardTitle className="text-sm sm:text-lg font-medium">Distribuição por Tipo</CardTitle>
                 <FileBarChart2 className="h-5 w-5 sm:h-6 sm:w-6 opacity-80" />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <div className="space-y-1 sm:space-y-2">
                   <div className="flex justify-between items-center">

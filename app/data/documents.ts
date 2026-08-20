@@ -2,6 +2,7 @@ import type { Document, DocumentType } from "../types";
 
 export async function fetchDocuments(): Promise<Document[]> {
   const baseUrl = "https://transparenciaapi.aracaju.se.gov.br";
+  const storageBaseUrl = "https://transparenciastorage.aracaju.se.gov.br";
 
   const response = await fetch(`${baseUrl}/documento`, {
     method: "GET",
@@ -20,7 +21,7 @@ export async function fetchDocuments(): Promise<Document[]> {
     return [];
   }
 
-  // 1. Mapeamento mantendo o fullText integral
+  // 1. Mapeamento mantendo o fullText integral e corrigindo URLs do MinIO
   const mappedDocuments = data.map((doc: any, index: number) => {
     const rawNumber = String(doc.number || doc.numero || doc.num || "");
     const rawTitle = String(doc.title || doc.titulo || doc.nome || "");
@@ -37,6 +38,14 @@ export async function fetchDocuments(): Promise<Document[]> {
       }
     }
 
+    // Normalização das URLs legadas do MinIO
+    let rawUrl = String(doc.url || doc.arquivo || doc.link || "");
+    if (rawUrl.includes("localhost:9000")) {
+      rawUrl = rawUrl.replace(/http:\/\/localhost:9000/g, storageBaseUrl);
+    } else if (rawUrl.startsWith("/atos-normativos")) {
+      rawUrl = `${storageBaseUrl}${rawUrl}`;
+    }
+
     const mappedDoc = {
       id: String(doc.id || doc._id || `doc-${index}`),
       type: rawType as DocumentType,
@@ -44,7 +53,7 @@ export async function fetchDocuments(): Promise<Document[]> {
       title: rawTitle,
       description: String(doc.description || doc.descricao || doc.desc || ""),
       date: formattedDate,
-      url: String(doc.url || doc.arquivo || doc.link || ""),
+      url: rawUrl,
       fullText: String(doc.fullText || doc.textoCompleto || doc.conteudo || ""),
       aprovado: doc.aprovado === true,
     };
