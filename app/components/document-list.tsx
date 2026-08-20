@@ -1,19 +1,17 @@
 "use client"
 
-import { useState, useMemo } from "react"
-// Certifique-se de que 'DocumentType' em '../types' está sincronizado com os tipos usados aqui
+import { useState, useMemo, useEffect } from "react"
 import type { Document, DocumentType, DateRange } from "../types"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { FileText, Download, FileBarChart2, Filter, Files } from "lucide-react"
+import { FileText, Download, FileBarChart2, Filter, Files, Loader2 } from "lucide-react"
 import { DocumentFilters } from "./document-filters"
 import { Pagination } from "./pagination"
 import { Button } from "@/components/ui/button"
+import { fetchDocuments } from "../data/documents"
 
-interface DocumentListProps {
-  documents: Document[]
-}
-
-export function DocumentList({ documents }: DocumentListProps) {
+export function DocumentList() {
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
@@ -23,30 +21,46 @@ export function DocumentList({ documents }: DocumentListProps) {
   const [activeTab, setActiveTab] = useState<DocumentType | "ALL">("ALL")
   const itemsPerPage = 5
 
-  // Filtra os documentos com base na busca, aba ativa e data
-  const filteredDocuments = documents.filter((doc) => {
-    const cleanTitle = doc.title.replace("/", "").replace(".", "")
-    const cleanDescription = doc.description.replace("/", "").replace(".", "")
-    const cleanNumber = doc.number.replace("/", "").replace(".", "")
-    const docFullText = doc.fullText.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    const matchesSearch =
-      cleanTitle.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
-      cleanDescription.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
-      cleanNumber.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
-      docFullText
-        .toLowerCase()
-        .includes(" " + searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true)
+        const data = await fetchDocuments()
+        setDocuments(data)
+      } catch (err) {
+        console.error("Erro ao carregar documentos:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
-    const matchesTab = activeTab === "ALL" || doc.type === activeTab
+  const filteredDocuments = useMemo(() => {
+    return documents.filter((doc) => {
+      const cleanTitle = doc.title.replace("/", "").replace(".", "")
+      const cleanDescription = doc.description.replace("/", "").replace(".", "")
+      const cleanNumber = doc.number.replace("/", "").replace(".", "")
+      const docFullText = (doc.fullText || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      
+      const matchesSearch =
+        cleanTitle.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
+        cleanDescription.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
+        cleanNumber.toLowerCase().includes(searchTerm.toLowerCase().replace("/", "").replace(".", "")) ||
+        docFullText
+          .toLowerCase()
+          .includes(" " + searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
 
-    const docDate = new Date(doc.date)
-    const matchesDateRange =
-      (!dateRange.from || docDate >= dateRange.from) && (!dateRange.to || docDate <= dateRange.to)
+      const matchesTab = activeTab === "ALL" || doc.type === activeTab
 
-    return matchesSearch && matchesTab && matchesDateRange
-  })
+      const docDate = new Date(doc.date)
+      const matchesDateRange =
+        (!dateRange.from || docDate >= dateRange.from) && (!dateRange.to || docDate <= dateRange.to)
 
-  // 🔧 Nova lógica: Encontra a data mais recente com base na aba atual
+      return matchesSearch && matchesTab && matchesDateRange
+    })
+  }, [documents, searchTerm, activeTab, dateRange])
+
   const ultimaAtualizacao = useMemo(() => {
     if (!documents || documents.length === 0) return null
 
@@ -100,9 +114,7 @@ export function DocumentList({ documents }: DocumentListProps) {
     }
 
     try {
-      const baseUrl = "https://painelesic.aracaju.se.gov.br"
-      const url = `${baseUrl}/files/download?filename=${encodeURIComponent(doc.url)}`
-
+      const url = `/api/download?filename=${encodeURIComponent(doc.url)}`
       const response = await fetch(url)
 
       if (!response.ok) {
@@ -156,6 +168,17 @@ export function DocumentList({ documents }: DocumentListProps) {
     { id: "LEI_COMPLEMENTAR", label: "Leis Complementares" },
     { id: "DECRETO", label: "Decretos" },
   ]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-6">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-10 w-10 text-blue-700 animate-spin mx-auto" />
+          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Carregando documentos e base de pesquisa...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -250,8 +273,6 @@ export function DocumentList({ documents }: DocumentListProps) {
             </div>
 
             <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800">
-              
-              {/* Exibe a data de atualização apenas se houver documentos na categoria */}
               {ultimaAtualizacao && (
                 <div className="pb-4 text-gray-600 text-sm">
                   Atualizado em {formatarDataPorExtenso(ultimaAtualizacao)}.
