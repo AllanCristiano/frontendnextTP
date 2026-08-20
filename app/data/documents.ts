@@ -1,14 +1,14 @@
 import type { Document, DocumentType } from "../types";
 
 export async function fetchDocuments(): Promise<Document[]> {
-  const baseUrl = "https://transparenciaapi.aracaju.se.gov.br";
-  const storageBaseUrl = "https://transparenciastorage.aracaju.se.gov.br";
+  const apiBaseUrl = "https://transparenciaapi.aracaju.se.gov.br";
 
-  const response = await fetch(`${baseUrl}/documento`, {
+  const response = await fetch(`${apiBaseUrl}/documento`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -21,7 +21,7 @@ export async function fetchDocuments(): Promise<Document[]> {
     return [];
   }
 
-  // 1. Mapeamento mantendo o fullText integral e corrigindo URLs do MinIO
+  // 1. Mapeamento mantendo fullText integral e normalizando URLs
   const mappedDocuments = data.map((doc: any, index: number) => {
     const rawNumber = String(doc.number || doc.numero || doc.num || "");
     const rawTitle = String(doc.title || doc.titulo || doc.nome || "");
@@ -38,12 +38,10 @@ export async function fetchDocuments(): Promise<Document[]> {
       }
     }
 
-    // Normalização das URLs legadas do MinIO
+    // Normaliza qualquer link antigo salvo com localhost
     let rawUrl = String(doc.url || doc.arquivo || doc.link || "");
-    if (rawUrl.includes("localhost:9000")) {
-      rawUrl = rawUrl.replace(/http:\/\/localhost:9000/g, storageBaseUrl);
-    } else if (rawUrl.startsWith("/atos-normativos")) {
-      rawUrl = `${storageBaseUrl}${rawUrl}`;
+    if (rawUrl.includes("localhost:9000") || rawUrl.includes("localhost:3001")) {
+      rawUrl = rawUrl.replace(/http:\/\/localhost:(9000|3001)/g, apiBaseUrl);
     }
 
     const mappedDoc = {

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Monta a URL completa da API externa de onde o arquivo será baixado.
-    const externalApiUrl = `https://painelesic.aracaju.se.gov.br/files/download?filename=${encodeURIComponent(filename)}`;
+    const externalApiUrl = `https://transparenciaapi.aracaju.se.gov.br/files/download?filename=${encodeURIComponent(filename)}`;
 
     // 3. Faz a requisição do seu servidor para a API externa.
     // Isso não tem restrição de CORS, pois é uma comunicação servidor-servidor.
