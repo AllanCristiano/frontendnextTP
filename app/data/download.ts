@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       filename = filename.split("atos-normativos/")[1];
     }
 
-    const apiBaseUrl = "https://transparenciaapi.aracaju.se.gov.br";
+    const apiBaseUrl = "https://painelesic.aracaju.se.gov.br";
     const externalApiUrl = `${apiBaseUrl}/files/download?filename=${encodeURIComponent(filename)}`;
 
     const response = await fetch(externalApiUrl);
