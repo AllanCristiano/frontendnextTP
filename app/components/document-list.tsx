@@ -107,29 +107,31 @@ export function DocumentList() {
     setCurrentPage(1)
   }
 
-  const handleDownload = async (doc: Document) => {
-      if (!doc.url) {
-        alert("Link do documento indisponível.")
-        return
-      }
-
-      try {
-        // Extrai apenas a parte do caminho do arquivo (ex: DECRETO/DECRETO_8-765_2026-08-27.pdf)
-        let caminhoArquivo = doc.url
-        if (doc.url.includes("://")) {
-          const urlObj = new URL(doc.url)
-          caminhoArquivo = urlObj.pathname.startsWith("/") ? urlObj.pathname.substring(1) : urlObj.pathname
-          // Remove eventuais prefixos duplicados de buckets na URL
-          caminhoArquivo = caminhoArquivo.replace(/^atos-normativos\//, "").replace(/^meu-bucket\//, "")
-        }
-
-        const url = `/api/download?filename=${encodeURIComponent(caminhoArquivo)}`
-        window.open(url, "_blank")
-      } catch (error) {
-        console.error("Erro ao abrir o arquivo:", error)
-        alert("Não foi possível abrir o arquivo. Tente novamente mais tarde.")
-      }
+  const handleDownload = (doc: Document) => {
+    if (!doc.url) {
+      alert("Link do documento indisponível.")
+      return
     }
+
+    try {
+      // Extrai apenas o caminho relativo (ex: DECRETO/DECRETO_8-765_2026-08-27.pdf)
+      let caminho = doc.url
+      if (doc.url.includes("://")) {
+        const urlObj = new URL(doc.url)
+        caminho = urlObj.pathname.startsWith("/") ? urlObj.pathname.substring(1) : urlObj.pathname
+        // Remove prefixo de bucket se já vier na URL antiga
+        caminho = caminho.replace(/^(atos-normativos|meu-bucket)\//, "")
+      }
+
+      // Monta o link direto no MinIO público
+      const urlFinal = `https://transparenciastoragepub.aracaju.se.gov.br/atos-normativos/${caminho}`
+      
+      window.open(urlFinal, "_blank")
+    } catch (error) {
+      console.error("Erro ao abrir o arquivo:", error)
+      alert("Não foi possível abrir o arquivo. Tente novamente mais tarde.")
+    }
+  }
 
   function formatarDataPorExtenso(dataStr: string): string {
     if (!dataStr) return ""
