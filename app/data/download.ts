@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'O parâmetro "filename" é obrigatório.' }, { status: 400 });
     }
 
-    // Extrai o caminho relativo caso venha a URL inteira
+    // Extrai o caminho relativo caso venha a URL inteirav
     if (filename.includes("atos-normativos/")) {
       filename = filename.split("atos-normativos/")[1];
     }
