@@ -108,20 +108,28 @@ export function DocumentList() {
   }
 
   const handleDownload = async (doc: Document) => {
-    if (!doc.url) {
-      alert("Link do documento indisponível.")
-      return
-    }
+      if (!doc.url) {
+        alert("Link do documento indisponível.")
+        return
+      }
 
-    try {
-      const url = `/api/download?filename=${encodeURIComponent(doc.url)}`
-      // Abre a rota da API diretamente em uma nova aba, o que fará o navegador exibir o PDF
-      window.open(url, "_blank")
-    } catch (error) {
-      console.error("Erro ao abrir o arquivo:", error)
-      alert("Não foi possível abrir o arquivo. Tente novamente mais tarde.")
+      try {
+        // Extrai apenas a parte do caminho do arquivo (ex: DECRETO/DECRETO_8-765_2026-08-27.pdf)
+        let caminhoArquivo = doc.url
+        if (doc.url.includes("://")) {
+          const urlObj = new URL(doc.url)
+          caminhoArquivo = urlObj.pathname.startsWith("/") ? urlObj.pathname.substring(1) : urlObj.pathname
+          // Remove eventuais prefixos duplicados de buckets na URL
+          caminhoArquivo = caminhoArquivo.replace(/^atos-normativos\//, "").replace(/^meu-bucket\//, "")
+        }
+
+        const url = `/api/download?filename=${encodeURIComponent(caminhoArquivo)}`
+        window.open(url, "_blank")
+      } catch (error) {
+        console.error("Erro ao abrir o arquivo:", error)
+        alert("Não foi possível abrir o arquivo. Tente novamente mais tarde.")
+      }
     }
-  }
 
   function formatarDataPorExtenso(dataStr: string): string {
     if (!dataStr) return ""
