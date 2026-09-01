@@ -1,7 +1,7 @@
 import type { Document, DocumentType } from "../types";
 
 export async function fetchDocuments(): Promise<Document[]> {
-  const apiBaseUrl = "https://transparenciaapi.aracaju.se.gov.br";
+  const apiBaseUrl = "https://painelesic.aracaju.se.gov.br";
 
   const response = await fetch(`${apiBaseUrl}/documento`, {
     method: "GET",
