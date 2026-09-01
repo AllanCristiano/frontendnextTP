@@ -115,28 +115,11 @@ export function DocumentList() {
 
     try {
       const url = `/api/download?filename=${encodeURIComponent(doc.url)}`
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        throw new Error(`Falha no download: ${response.statusText}`)
-      }
-
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-
-      const nomeArquivo = doc.url.split("/").pop() || `Documento_${doc.number}.pdf`
-
-      const link = document.createElement("a")
-      link.href = downloadUrl
-      link.download = nomeArquivo
-      document.body.appendChild(link)
-      link.click()
-
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(downloadUrl)
+      // Abre a rota da API diretamente em uma nova aba, o que fará o navegador exibir o PDF
+      window.open(url, "_blank")
     } catch (error) {
-      console.error("Erro ao baixar o arquivo:", error)
-      alert("Não foi possível baixar o arquivo. Tente novamente mais tarde.")
+      console.error("Erro ao abrir o arquivo:", error)
+      alert("Não foi possível abrir o arquivo. Tente novamente mais tarde.")
     }
   }
 
